@@ -1,0 +1,616 @@
+// JVR CRM Pro - Código de la Aplicación Web (HTML / Tailwind CSS / JavaScript)
+// Puedes guardarlo como index.html para abrirlo directamente en el navegador, subirlo a GitHub Pages o pegarlo en un archivo HTML en Google Apps Script.
+
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-950">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JVR CRM Pro | Gestión de Leads y Clientes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985',
+              800: '#0c4a6e',
+              900: '#082f49',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .kanban-col::-webkit-scrollbar { width: 6px; }
+    .kanban-col::-webkit-scrollbar-track { background: transparent; }
+    .kanban-col::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+  </style>
+</head>
+<body class="h-full text-slate-100 flex flex-col antialiased">
+
+  <!-- NAVBAR -->
+  <header class="bg-slate-900/90 backdrop-blur border-b border-slate-800 sticky top-0 z-40 px-4 sm:px-6 py-3.5 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-emerald-500 flex items-center justify-center font-bold text-white shadow-lg shadow-sky-500/20">
+        CRM
+      </div>
+      <div>
+        <h1 class="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+          JVR CRM Pro
+          <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Activo</span>
+        </h1>
+        <p class="text-xs text-slate-400">Captación & Ventas de Servicios Contables e IA</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <!-- Sync Status Button -->
+      <button onclick="openSyncModal()" id="syncBtn" class="flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:border-slate-600 transition text-slate-300">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span id="syncText">Sincronización Sheets</span>
+      </button>
+
+      <!-- Nuevo Lead Button -->
+      <button onclick="openLeadModal()" class="flex items-center gap-2 text-xs sm:text-sm font-bold px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white shadow-lg shadow-sky-600/30 transition transform hover:-translate-y-0.5">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        <span>Nuevo Prospecto</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- NAVEGACIÓN DE VISTAS -->
+  <div class="bg-slate-900 border-b border-slate-800 px-4 sm:px-6 flex items-center justify-between overflow-x-auto">
+    <div class="flex items-center gap-2 py-2">
+      <button onclick="switchView('kanban')" id="tab-kanban" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-sky-400 bg-sky-500/10 border border-sky-500/30">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
+        Tablero Kanban
+      </button>
+      <button onclick="switchView('table')" id="tab-table" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-400 hover:text-slate-200">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+        Directorio / Tabla
+      </button>
+      <button onclick="switchView('dashboard')" id="tab-dashboard" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-400 hover:text-slate-200">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/></svg>
+        Métricas & Análisis
+      </button>
+    </div>
+
+    <div class="relative py-2 min-w-[200px] sm:min-w-[260px]">
+      <input type="text" id="searchInput" oninput="filterLeads()" placeholder="Buscar por cliente, empresa..." class="w-full bg-slate-950 border border-slate-700 text-xs rounded-lg pl-8 pr-3 py-1.5 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" />
+      <svg class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+    </div>
+  </div>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="flex-1 overflow-y-auto p-4 sm:p-6">
+
+    <!-- KPI SUMMARY BAR -->
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 mb-6">
+      <div class="p-4 rounded-xl bg-slate-900 border border-slate-800">
+        <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Total Leads</span>
+        <span id="kpiTotalLeads" class="text-2xl font-extrabold text-white">0</span>
+      </div>
+      <div class="p-4 rounded-xl bg-slate-900 border border-slate-800">
+        <span class="text-[11px] font-semibold text-sky-400 uppercase tracking-wider block">En Negociación</span>
+        <span id="kpiInNegotiation" class="text-2xl font-extrabold text-sky-400">0</span>
+      </div>
+      <div class="p-4 rounded-xl bg-slate-900 border border-slate-800">
+        <span class="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider block">Ganados</span>
+        <span id="kpiWon" class="text-2xl font-extrabold text-emerald-400">0</span>
+      </div>
+      <div class="p-4 rounded-xl bg-slate-900 border border-slate-800">
+        <span class="text-[11px] font-semibold text-amber-400 uppercase tracking-wider block">Conversión %</span>
+        <span id="kpiConversion" class="text-2xl font-extrabold text-amber-400">0%</span>
+      </div>
+      <div class="p-4 rounded-xl bg-slate-900 border border-slate-800">
+        <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Pipeline Total</span>
+        <span id="kpiPipelineVal" class="text-2xl font-extrabold text-white">$0</span>
+      </div>
+      <div class="p-4 rounded-xl bg-slate-900 border border-slate-800">
+        <span class="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider block">Ingresos Cerrados</span>
+        <span id="kpiWonVal" class="text-2xl font-extrabold text-emerald-400">$0</span>
+      </div>
+    </div>
+
+    <!-- VISTA 1: TABLERO KANBAN -->
+    <div id="view-kanban" class="view-content flex gap-4 overflow-x-auto pb-4 items-start min-h-[550px]"></div>
+
+    <!-- VISTA 2: TABLA / DIRECTORIO -->
+    <div id="view-table" class="view-content hidden bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+      <div class="p-4 border-b border-slate-800 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <select id="filterStage" onchange="filterLeads()" class="bg-slate-950 border border-slate-700 text-xs rounded-lg px-3 py-1.5 text-slate-300 focus:outline-none focus:border-sky-500">
+            <option value="ALL">Todas las Etapas</option>
+            <option value="1. Nuevo Lead">1. Nuevo Lead</option>
+            <option value="2. Contactado">2. Contactado</option>
+            <option value="3. Diagnóstico Realizado">3. Diagnóstico Realizado</option>
+            <option value="4. Propuesta Presentada">4. Propuesta Presentada</option>
+            <option value="5. Ganado / Cliente Activo">5. Ganado / Cliente Activo</option>
+            <option value="6. Perdido / Descartado">6. Perdido / Descartado</option>
+          </select>
+          <select id="filterService" onchange="filterLeads()" class="bg-slate-950 border border-slate-700 text-xs rounded-lg px-3 py-1.5 text-slate-300 focus:outline-none focus:border-sky-500">
+            <option value="ALL">Todos los Servicios</option>
+            <option value="Automatización de Facturas con IA">Automatización de Facturas con IA</option>
+            <option value="Aplicaciones AppSheet a Medida">Aplicaciones AppSheet a Medida</option>
+            <option value="Dirección Contable & Estados Financieros">Dirección Contable & Estados Financieros</option>
+            <option value="Modelos Financieros Excel/Sheets">Modelos Financieros Excel/Sheets</option>
+            <option value="Flujos de Integración n8n/Make">Flujos de Integración n8n/Make</option>
+          </select>
+        </div>
+        <div class="text-xs text-slate-400">
+          Mostrando <span id="leadCount" class="font-bold text-white">0</span> prospectos
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-slate-950/80 text-slate-400 uppercase tracking-wider border-b border-slate-800 font-semibold">
+            <tr>
+              <th class="py-3.5 px-4">ID</th>
+              <th class="py-3.5 px-4">Contacto & Empresa</th>
+              <th class="py-3.5 px-4">Servicio de Interés</th>
+              <th class="py-3.5 px-4">Etapa</th>
+              <th class="py-3.5 px-4">Valor Estimado</th>
+              <th class="py-3.5 px-4">Próxima Acción</th>
+              <th class="py-3.5 px-4 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="leadsTableBody" class="divide-y divide-slate-800"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- VISTA 3: DASHBOARD MÉTRICAS Y ANÁLISIS -->
+    <div id="view-dashboard" class="view-content hidden space-y-6">
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <h3 class="text-sm font-bold text-white mb-4">Demanda por Servicio</h3>
+          <div id="serviceStatsContainer" class="space-y-3"></div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <h3 class="text-sm font-bold text-white mb-4">Canales de Captación Más Efectivos</h3>
+          <div id="originStatsContainer" class="space-y-3"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL: CREAR / EDITAR LEAD -->
+  <div id="leadModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl">
+      <div class="p-6 border-b border-slate-800 flex items-center justify-between">
+        <h3 id="modalTitle" class="text-base font-bold text-white">Registrar Nuevo Prospecto</h3>
+        <button onclick="closeLeadModal()" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+
+      <form id="leadForm" onsubmit="saveLead(event)" class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+        <input type="hidden" id="editLeadId" value="" />
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Nombre del Contacto *</label>
+            <input type="text" id="leadName" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-sky-500" placeholder="Ej. Carlos Méndez" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Empresa / Negocio</label>
+            <input type="text" id="leadCompany" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-sky-500" placeholder="Ej. Comercial del Norte SRL" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Teléfono / WhatsApp *</label>
+            <input type="text" id="leadPhone" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-sky-500" placeholder="+1 829 000 0000" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Correo Electrónico</label>
+            <input type="email" id="leadEmail" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-sky-500" placeholder="contacto@empresa.com" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Servicio de Interés</label>
+            <select id="leadService" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500">
+              <option value="Automatización de Facturas con IA">Automatización de Facturas con IA</option>
+              <option value="Aplicaciones AppSheet a Medida">Aplicaciones AppSheet a Medida</option>
+              <option value="Dirección Contable & Estados Financieros">Dirección Contable & Estados Financieros</option>
+              <option value="Modelos Financieros Excel/Sheets">Modelos Financieros Excel/Sheets</option>
+              <option value="Flujos de Integración n8n/Make">Flujos de Integración n8n/Make</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Canal de Origen</label>
+            <select id="leadOrigin" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500">
+              <option value="Sitio Web">Sitio Web</option>
+              <option value="WhatsApp Directo">WhatsApp Directo</option>
+              <option value="Upwork">Upwork</option>
+              <option value="Recomendación / Referido">Recomendación / Referido</option>
+              <option value="LinkedIn">LinkedIn</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Etapa del Embudo</label>
+            <select id="leadStage" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500">
+              <option value="1. Nuevo Lead">1. Nuevo Lead</option>
+              <option value="2. Contactado">2. Contactado</option>
+              <option value="3. Diagnóstico Realizado">3. Diagnóstico Realizado</option>
+              <option value="4. Propuesta Presentada">4. Propuesta Presentada</option>
+              <option value="5. Ganado / Cliente Activo">5. Ganado / Cliente Activo</option>
+              <option value="6. Perdido / Descartado">6. Perdido / Descartado</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Valor Estimado ($ USD)</label>
+            <input type="number" id="leadValue" value="500" min="0" step="50" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-sky-500" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Fecha Próxima Acción</label>
+            <input type="date" id="leadNextDate" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-sky-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Próxima Tarea / Compromiso</label>
+            <input type="text" id="leadNextTask" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-sky-500" placeholder="Ej. Enviar propuesta por correo" />
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-800 flex justify-end gap-3">
+          <button type="button" onclick="closeLeadModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white">Cancelar</button>
+          <button type="submit" class="px-6 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold">Guardar Prospecto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIGURACIÓN DE CONEXIÓN GOOGLE SHEETS -->
+  <div id="syncModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-lg p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-base font-bold text-white">Conexión con Google Sheets</h3>
+        <button onclick="closeSyncModal()" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+      <p class="text-xs text-slate-300 mb-4 leading-relaxed">
+        Ingresa la URL de tu Web App de Google Apps Script para sincronización bidireccional en la nube:
+      </p>
+      <div class="space-y-3 mb-6">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">URL de Apps Script Web App</label>
+          <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-500" />
+        </div>
+      </div>
+      <div class="flex justify-end gap-3">
+        <button onclick="closeSyncModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white">Cerrar</button>
+        <button onclick="saveSyncConfig()" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STAGES = [
+      { id: "1. Nuevo Lead", title: "Nuevo Lead", color: "border-sky-500/40 text-sky-400 bg-sky-500/10" },
+      { id: "2. Contactado", title: "Contactado", color: "border-blue-500/40 text-blue-400 bg-blue-500/10" },
+      { id: "3. Diagnóstico Realizado", title: "Diagnóstico", color: "border-amber-500/40 text-amber-400 bg-amber-500/10" },
+      { id: "4. Propuesta Presentada", title: "Propuesta", color: "border-purple-500/40 text-purple-400 bg-purple-500/10" },
+      { id: "5. Ganado / Cliente Activo", title: "Ganado", color: "border-emerald-500/40 text-emerald-400 bg-emerald-500/10" },
+      { id: "6. Perdido / Descartado", title: "Perdido", color: "border-slate-600/40 text-slate-400 bg-slate-800/40" }
+    ];
+
+    let defaultLeads = [
+      { id: "LEAD-001", date: "2026-09-20", name: "Lic. Marcos Henríquez", company: "Distribuidora del Cibao SRL", phone: "+18295551234", email: "mhenriquez@distcibao.com", service: "Automatización de Facturas con IA", origin: "WhatsApp Directo", stage: "3. Diagnóstico Realizado", value: 1200, nextDate: "2026-09-25", nextTask: "Presentar propuesta con integración n8n" },
+      { id: "LEAD-002", date: "2026-09-21", name: "Ing. Laura Fernández", company: "Agropecuaria Sánchez SRL", phone: "+18095558899", email: "lfernandez@agrosanchez.do", service: "Aplicaciones AppSheet a Medida", origin: "Sitio Web", stage: "4. Propuesta Presentada", value: 1800, nextDate: "2026-09-26", nextTask: "Reunión virtual para definir flujos de compras" },
+      { id: "LEAD-003", date: "2026-09-22", name: "Carlos Batista", company: "Clínica Dental Moderna", phone: "+18297773344", email: "cbatista@dentalmoderna.com", service: "Dirección Contable & Estados Financieros", origin: "Recomendación / Referido", stage: "2. Contactado", value: 750, nextDate: "2026-09-27", nextTask: "Solicitar balanza de comprobación previa" },
+      { id: "LEAD-004", date: "2026-09-22", name: "Elena Morales", company: "Ferretería Industrial La Fé", phone: "+18094441122", email: "emorales@ferreterialafe.com", service: "Modelos Financieros Excel/Sheets", origin: "Sitio Web", stage: "1. Nuevo Lead", value: 600, nextDate: "2026-09-24", nextTask: "Llamada introductoria y diagnóstico inicial" },
+      { id: "LEAD-005", date: "2026-09-18", name: "Roberto Gómez", company: "Construcciones & Proyectos RG", phone: "+18296667788", email: "rgomez@rgconstrucciones.com", service: "Automatización de Facturas con IA", origin: "Upwork", stage: "5. Ganado / Cliente Activo", value: 1500, nextDate: "2026-10-01", nextTask: "Capacitación a equipo contable" }
+    ];
+
+    let leads = JSON.parse(localStorage.getItem('jvr_crm_leads')) || defaultLeads;
+
+    function saveToStorage() {
+      localStorage.setItem('jvr_crm_leads', JSON.stringify(leads));
+      updateUI();
+    }
+
+    function switchView(viewName) {
+      document.querySelectorAll('.view-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('text-sky-400', 'bg-sky-500/10', 'border', 'border-sky-500/30');
+        btn.classList.add('text-slate-400');
+      });
+      document.getElementById('view-' + viewName).classList.remove('hidden');
+      const activeTab = document.getElementById('tab-' + viewName);
+      activeTab.classList.remove('text-slate-400');
+      activeTab.classList.add('text-sky-400', 'bg-sky-500/10', 'border', 'border-sky-500/30');
+    }
+
+    function renderKanban(filtered = leads) {
+      const container = document.getElementById('view-kanban');
+      container.innerHTML = '';
+      STAGES.forEach(stage => {
+        const stageLeads = filtered.filter(l => l.stage === stage.id);
+        const stageTotal = stageLeads.reduce((acc, l) => acc + (parseFloat(l.value) || 0), 0);
+        const col = document.createElement('div');
+        col.className = "kanban-col flex-shrink-0 w-80 bg-slate-900 border border-slate-800/80 rounded-2xl flex flex-col max-h-[calc(100vh-210px)] overflow-hidden shadow-lg";
+        col.innerHTML = `
+          <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold ${stage.color} px-2.5 py-1 rounded-md border">${stage.title}</span>
+              <span class="text-xs font-bold text-slate-400">(${stageLeads.length})</span>
+            </div>
+            <span class="text-xs font-semibold text-slate-400">$${stageTotal.toLocaleString()}</span>
+          </div>
+          <div class="p-3 space-y-3 flex-1 overflow-y-auto kanban-col">
+            ${stageLeads.map(lead => `
+              <div class="bg-slate-950 p-4 rounded-xl border border-slate-800/90 hover:border-slate-700 transition shadow-sm">
+                <div class="flex items-start justify-between gap-2 mb-2">
+                  <span class="text-[10px] font-bold text-slate-500">${lead.id}</span>
+                  <span class="text-xs font-extrabold text-emerald-400">$${(parseFloat(lead.value) || 0).toLocaleString()}</span>
+                </div>
+                <h4 class="text-sm font-bold text-white mb-0.5">${lead.name}</h4>
+                <p class="text-xs text-slate-400 mb-3">${lead.company || 'Empresa no especificada'}</p>
+                <div class="mb-3">
+                  <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-sky-300 font-medium">${lead.service}</span>
+                </div>
+                ${lead.nextTask ? `
+                  <div class="bg-slate-900/80 p-2 rounded-lg text-[11px] text-slate-300 mb-3 border border-slate-800/60">
+                    <span class="text-slate-500 font-semibold block text-[10px] uppercase">Próxima acción (${lead.nextDate || 'Pendiente'}):</span>
+                    ${lead.nextTask}
+                  </div>
+                ` : ''}
+                <div class="pt-2 border-t border-slate-800/60 flex items-center justify-between">
+                  <a href="https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}" target="_blank" class="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300">WhatsApp 💬</a>
+                  <div class="flex items-center gap-1.5">
+                    <button onclick="editLead('${lead.id}')" class="text-[11px] text-slate-400 hover:text-white px-2 py-0.5 rounded bg-slate-800">Editar</button>
+                    <button onclick="moveNextStage('${lead.id}')" class="text-[11px] text-sky-400 hover:text-sky-300 px-2 py-0.5 rounded bg-sky-500/10">➔</button>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        container.appendChild(col);
+      });
+    }
+
+    function renderTable(filtered = leads) {
+      const tbody = document.getElementById('leadsTableBody');
+      tbody.innerHTML = '';
+      document.getElementById('leadCount').innerText = filtered.length;
+      filtered.forEach(lead => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-800/40 transition";
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-mono text-slate-500">${lead.id}</td>
+          <td class="py-3 px-4">
+            <div class="font-bold text-white">${lead.name}</div>
+            <div class="text-[11px] text-slate-400">${lead.company || '-'} • ${lead.phone}</div>
+          </td>
+          <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-slate-800 text-sky-300 text-[11px]">${lead.service}</span></td>
+          <td class="py-3 px-4">
+            <select onchange="updateLeadStage('${lead.id}', this.value)" class="bg-slate-950 border border-slate-800 text-[11px] rounded-lg px-2 py-1 text-slate-200">
+              ${STAGES.map(s => `<option value="${s.id}" ${lead.stage === s.id ? 'selected' : ''}>${s.title}</option>`).join('')}
+            </select>
+          </td>
+          <td class="py-3 px-4 font-bold text-emerald-400">$${(parseFloat(lead.value) || 0).toLocaleString()}</td>
+          <td class="py-3 px-4">
+            <div class="text-white">${lead.nextTask || '-'}</div>
+            <div class="text-[10px] text-slate-500">${lead.nextDate || ''}</div>
+          </td>
+          <td class="py-3 px-4 text-right space-x-2">
+            <a href="https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}" target="_blank" class="text-emerald-400">WA</a>
+            <button onclick="editLead('${lead.id}')" class="text-sky-400">Editar</button>
+            <button onclick="deleteLead('${lead.id}')" class="text-rose-400">Eliminar</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateKPIs() {
+      const total = leads.length;
+      const won = leads.filter(l => l.stage.includes('Ganado')).length;
+      const inNeg = leads.filter(l => l.stage.includes('Contactado') || l.stage.includes('Diagnóstico') || l.stage.includes('Propuesta')).length;
+      const conversion = total > 0 ? Math.round((won / total) * 100) : 0;
+      const pipelineVal = leads.filter(l => !l.stage.includes('Perdido')).reduce((acc, l) => acc + (parseFloat(l.value) || 0), 0);
+      const wonVal = leads.filter(l => l.stage.includes('Ganado')).reduce((acc, l) => acc + (parseFloat(l.value) || 0), 0);
+
+      document.getElementById('kpiTotalLeads').innerText = total;
+      document.getElementById('kpiInNegotiation').innerText = inNeg;
+      document.getElementById('kpiWon').innerText = won;
+      document.getElementById('kpiConversion').innerText = conversion + '%';
+      document.getElementById('kpiPipelineVal').innerText = '$' + pipelineVal.toLocaleString();
+      document.getElementById('kpiWonVal').innerText = '$' + wonVal.toLocaleString();
+
+      renderDashboardStats();
+    }
+
+    function renderDashboardStats() {
+      const serviceContainer = document.getElementById('serviceStatsContainer');
+      const originContainer = document.getElementById('originStatsContainer');
+      serviceContainer.innerHTML = '';
+      originContainer.innerHTML = '';
+
+      const serviceCounts = {};
+      leads.forEach(l => { serviceCounts[l.service] = (serviceCounts[l.service] || 0) + 1; });
+      Object.keys(serviceCounts).forEach(srv => {
+        const count = serviceCounts[srv];
+        const pct = Math.round((count / leads.length) * 100) || 0;
+        serviceContainer.innerHTML += `
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-300 font-medium">${srv}</span>
+              <span class="text-slate-400 font-bold">${count} (${pct}%)</span>
+            </div>
+            <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+              <div class="h-full bg-sky-500 rounded-full" style="width: ${pct}%"></div>
+            </div>
+          </div>
+        `;
+      });
+
+      const originCounts = {};
+      leads.forEach(l => { originCounts[l.origin] = (originCounts[l.origin] || 0) + 1; });
+      Object.keys(originCounts).forEach(org => {
+        const count = originCounts[org];
+        const pct = Math.round((count / leads.length) * 100) || 0;
+        originContainer.innerHTML += `
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-300 font-medium">${org}</span>
+              <span class="text-slate-400 font-bold">${count} (${pct}%)</span>
+            </div>
+            <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+              <div class="h-full bg-emerald-500 rounded-full" style="width: ${pct}%"></div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function filterLeads() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const stage = document.getElementById('filterStage') ? document.getElementById('filterStage').value : 'ALL';
+      const service = document.getElementById('filterService') ? document.getElementById('filterService').value : 'ALL';
+      const filtered = leads.filter(l => {
+        const matchesQuery = (l.name || '').toLowerCase().includes(query) || (l.company || '').toLowerCase().includes(query) || (l.phone || '').includes(query);
+        const matchesStage = stage === 'ALL' || l.stage === stage;
+        const matchesService = service === 'ALL' || l.service === service;
+        return matchesQuery && matchesStage && matchesService;
+      });
+      renderKanban(filtered);
+      renderTable(filtered);
+    }
+
+    function openLeadModal() {
+      document.getElementById('editLeadId').value = '';
+      document.getElementById('leadForm').reset();
+      document.getElementById('modalTitle').innerText = 'Registrar Nuevo Prospecto';
+      document.getElementById('leadModal').classList.remove('hidden');
+      document.getElementById('leadModal').classList.add('flex');
+    }
+
+    function closeLeadModal() {
+      document.getElementById('leadModal').classList.add('hidden');
+      document.getElementById('leadModal').classList.remove('flex');
+    }
+
+    function editLead(id) {
+      const lead = leads.find(l => l.id === id);
+      if (!lead) return;
+      document.getElementById('editLeadId').value = lead.id;
+      document.getElementById('leadName').value = lead.name;
+      document.getElementById('leadCompany').value = lead.company || '';
+      document.getElementById('leadPhone').value = lead.phone;
+      document.getElementById('leadEmail').value = lead.email || '';
+      document.getElementById('leadService').value = lead.service;
+      document.getElementById('leadOrigin').value = lead.origin;
+      document.getElementById('leadStage').value = lead.stage;
+      document.getElementById('leadValue').value = lead.value;
+      document.getElementById('leadNextDate').value = lead.nextDate || '';
+      document.getElementById('leadNextTask').value = lead.nextTask || '';
+      document.getElementById('modalTitle').innerText = 'Editar Prospecto ' + lead.id;
+      document.getElementById('leadModal').classList.remove('hidden');
+      document.getElementById('leadModal').classList.add('flex');
+    }
+
+    function saveLead(e) {
+      e.preventDefault();
+      const editId = document.getElementById('editLeadId').value;
+      const leadData = {
+        name: document.getElementById('leadName').value,
+        company: document.getElementById('leadCompany').value,
+        phone: document.getElementById('leadPhone').value,
+        email: document.getElementById('leadEmail').value,
+        service: document.getElementById('leadService').value,
+        origin: document.getElementById('leadOrigin').value,
+        stage: document.getElementById('leadStage').value,
+        value: parseFloat(document.getElementById('leadValue').value) || 0,
+        nextDate: document.getElementById('leadNextDate').value,
+        nextTask: document.getElementById('leadNextTask').value
+      };
+
+      if (editId) {
+        const idx = leads.findIndex(l => l.id === editId);
+        if (idx !== -1) leads[idx] = { ...leads[idx], ...leadData };
+      } else {
+        const newId = 'LEAD-' + String(leads.length + 1).padStart(3, '0');
+        const today = new Date().toISOString().split('T')[0];
+        leads.unshift({ id: newId, date: today, ...leadData });
+      }
+
+      closeLeadModal();
+      saveToStorage();
+    }
+
+    function updateLeadStage(id, newStage) {
+      const lead = leads.find(l => l.id === id);
+      if (lead) {
+        lead.stage = newStage;
+        saveToStorage();
+      }
+    }
+
+    function moveNextStage(id) {
+      const lead = leads.find(l => l.id === id);
+      if (!lead) return;
+      const currentIdx = STAGES.findIndex(s => s.id === lead.stage);
+      if (currentIdx !== -1 && currentIdx < STAGES.length - 1) {
+        lead.stage = STAGES[currentIdx + 1].id;
+        saveToStorage();
+      }
+    }
+
+    function deleteLead(id) {
+      if (confirm('¿Seguro que deseas eliminar este prospecto?')) {
+        leads = leads.filter(l => l.id !== id);
+        saveToStorage();
+      }
+    }
+
+    function openSyncModal() {
+      document.getElementById('syncModal').classList.remove('hidden');
+      document.getElementById('syncModal').classList.add('flex');
+      document.getElementById('scriptUrl').value = localStorage.getItem('jvr_crm_script_url') || '';
+    }
+
+    function closeSyncModal() {
+      document.getElementById('syncModal').classList.add('hidden');
+      document.getElementById('syncModal').classList.remove('flex');
+    }
+
+    function saveSyncConfig() {
+      const url = document.getElementById('scriptUrl').value.trim();
+      localStorage.setItem('jvr_crm_script_url', url);
+      closeSyncModal();
+      alert('Configuración guardada correctamente.');
+    }
+
+    function updateUI() {
+      renderKanban();
+      renderTable();
+      updateKPIs();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      updateUI();
+    });
+  </script>
+</body>
+</html>
